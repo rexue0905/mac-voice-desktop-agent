@@ -1,0 +1,17 @@
+# ===== Secrets / Environment =====
+.env
+
+# ===== Logs =====
+*.log
+
+# ===== Local data =====
+data/
+
+# ===== Node (if used in future) =====
+node_modules/
+
+# ===== Python (if used in future) =====
+__pycache__/
+*.pyc
+*.pyo
+*.pyd.DS_Store
