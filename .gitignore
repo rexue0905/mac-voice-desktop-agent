@@ -11,7 +11,9 @@ data/
 node_modules/
 
 # ===== Python (if used in future) =====
+.DS_Store
 __pycache__/
 *.pyc
 *.pyo
-*.pyd.DS_Store
+*.pyd
+

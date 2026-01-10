@@ -1,24 +1,42 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
 
 HOST = "127.0.0.1"
 PORT = 8080
 
+# 从环境变量读取 Token
+AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
+
 
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 健康检查：浏览器打开看到 OK
+        # 健康检查
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.end_headers()
         self.wfile.write("OK".encode("utf-8"))
 
     def do_POST(self):
-        # 只处理 /command
+        # 只允许 /command
         if self.path != "/command":
             self.send_response(404)
             self.end_headers()
             return
+
+        # ===== 鉴权开始 =====
+        auth_header = self.headers.get("Authorization", "")
+        expected = f"Bearer {AUTH_TOKEN}"
+
+        if not AUTH_TOKEN or auth_header != expected:
+            self.send_response(401)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(
+                json.dumps({"ok": False, "error": "unauthorized"}).encode("utf-8")
+            )
+            return
+        # ===== 鉴权结束 =====
 
         content_length = int(self.headers.get("Content-Length", "0"))
         raw_body = self.rfile.read(content_length).decode("utf-8")
@@ -30,10 +48,12 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            self.wfile.write(json.dumps({"ok": False, "error": "invalid_json"}).encode("utf-8"))
+            self.wfile.write(
+                json.dumps({"ok": False, "error": "invalid_json"}).encode("utf-8")
+            )
             return
 
-        # 目前只打印，不执行任何动作
+        # 目前只打印，不执行
         print(f"[COMMAND] {text}")
 
         self.send_response(200)
@@ -46,9 +66,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
 
 def run_server():
+    if not AUTH_TOKEN:
+        print("ERROR: AUTH_TOKEN is not set")
+        return
+
     server = HTTPServer((HOST, PORT), SimpleHandler)
     print(f"Server running at http://{HOST}:{PORT}")
-    print("POST /command with JSON: {\"text\":\"...\"}")
+    print("POST /command requires Authorization: Bearer <TOKEN>")
     server.serve_forever()
 
 
