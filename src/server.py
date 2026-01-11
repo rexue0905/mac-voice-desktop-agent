@@ -100,7 +100,10 @@ def run_server():
     server = HTTPServer((HOST, PORT), SimpleHandler)
     print(f"Server running at http://{HOST}:{PORT}")
     print("POST /command requires Authorization and action/params")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("Server stopped")
 
 
 if __name__ == "__main__":
