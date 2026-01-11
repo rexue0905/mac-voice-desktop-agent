@@ -2,6 +2,7 @@
 
 本仓库实现一个可控、可中断、可审计的 Mac 端 Agent。当前已完成模块 5（最简单执行器）。
 
+
 ## 快速开始
 
 ### 1) 启动服务
@@ -18,6 +19,7 @@ curl -sS -X POST http://127.0.0.1:8080/command \
   -H "Authorization: Bearer your-strong-token" \
   -H "Content-Type: application/json" \
   -d '{"action":"sleep","params":{"ms":1000}}'
+  -d '{"action":"ping","params":{}}'
 ```
 
 ### 3) 查看队列状态
@@ -48,3 +50,8 @@ curl -sS -X POST http://127.0.0.1:8080/stop \
 - notify(title, message): 系统通知（长度限制）
 - screenshot(): 保存到 `./artifacts/screenshots/`
 - sleep(ms): 演示队列与 STOP（上限 5000ms）
+## 最小可运行测试
+
+```bash
+python -m unittest discover -s tests -v
+```
