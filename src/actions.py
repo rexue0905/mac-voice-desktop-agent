@@ -3,8 +3,11 @@ from typing import Any, Dict, Tuple
 
 # 白名单：允许的 action 列表
 ALLOWED_ACTIONS = {
-    "ping",
-    "print_text",
+    "open_app",
+    "open_url",
+    "notify",
+    "screenshot",
+    "sleep",
 }
 
 def validate_command(payload: Dict[str, Any]) -> Tuple[bool, str]:
@@ -32,14 +35,31 @@ def validate_command(payload: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "params_must_be_object"
 
     # action별 파라미터 최소 검증
-    if action == "ping":
-        # ping 不需要参数
-        if params:
-            return False, "ping_params_must_be_empty"
+    if action == "open_app":
+        app_name = params.get("app_name")
+        if not isinstance(app_name, str) or not app_name.strip():
+            return False, "open_app_requires_app_name"
 
-    if action == "print_text":
-        text = params.get("text")
-        if not isinstance(text, str) or not text.strip():
-            return False, "print_text_requires_text"
+    if action == "open_url":
+        url = params.get("url")
+        if not isinstance(url, str) or not url.strip():
+            return False, "open_url_requires_url"
+
+    if action == "notify":
+        title = params.get("title")
+        message = params.get("message")
+        if not isinstance(title, str) or not title.strip():
+            return False, "notify_requires_title"
+        if not isinstance(message, str) or not message.strip():
+            return False, "notify_requires_message"
+
+    if action == "screenshot":
+        if params:
+            return False, "screenshot_params_must_be_empty"
+
+    if action == "sleep":
+        ms = params.get("ms")
+        if not isinstance(ms, int):
+            return False, "sleep_requires_ms"
 
     return True, ""
