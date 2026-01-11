@@ -4,10 +4,9 @@ from collections import deque
 from typing import Any, Deque, Dict, List, Optional
 from uuid import uuid4
 
-from skills import redact_params
 
 class QueueManager:
-    def __init__(self, executor, *, step_delay: float = 0.05, steps: int = 5) -> None:
+    def __init__(self, *, step_delay: float = 0.05, steps: int = 5) -> None:
         self._queue: Deque[Dict[str, Any]] = deque()
         self._current: Optional[Dict[str, Any]] = None
         self._logs: List[Dict[str, Any]] = []
@@ -15,7 +14,6 @@ class QueueManager:
         self._stop_token = 0
         self._step_delay = step_delay
         self._steps = steps
-        self._executor = executor
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
 
@@ -23,13 +21,9 @@ class QueueManager:
         task_id = str(uuid4())
         task = {
             "id": task_id,
-            "request_id": task_id,
-            "step_id": f"{task_id}:1",
             "action": action,
             "params": params,
-            "params_redacted": redact_params(action, params),
             "status": "queued",
-            "result": None,
         }
         with self._lock:
             self._queue.append(task)
@@ -91,32 +85,19 @@ class QueueManager:
                 self._mark_cancelled(task, "stop_requested")
                 continue
 
-            result = self._execute_action(task, stop_token)
-            status = result.get("status")
-            task["result"] = result
-            if status == "stopped":
-                self._mark_stopped(task, result)
-            elif status == "failed":
-                self._mark_failed(task, result)
+            cancelled = self._execute_action(task, stop_token)
+            if cancelled:
+                self._mark_cancelled(task, "stop_requested")
             else:
-                self._mark_completed(task, result)
+                self._mark_completed(task)
 
-    def _execute_action(self, task: Dict[str, Any], stop_token: int) -> Dict[str, Any]:
+    def _execute_action(self, task: Dict[str, Any], stop_token: int) -> bool:
+        # 模块 4：仅模拟执行时间，实际执行器在后续模块实现
         for _ in range(self._steps):
             time.sleep(self._step_delay)
             if self._should_stop(stop_token):
-                return {
-                    "status": "stopped",
-                    "message": "stopped_before_execute",
-                    "error_code": "stopped",
-                    "duration_ms": 0,
-                }
-
-        return self._executor.execute(
-            task["action"],
-            task["params"],
-            lambda: self._should_stop(stop_token),
-        )
+                return True
+        return False
 
     def _should_stop(self, stop_token: int) -> bool:
         with self._lock:
@@ -127,20 +108,10 @@ class QueueManager:
             task["status"] = "cancelled"
             self._log_event("cancelled", task, detail=detail)
 
-    def _mark_stopped(self, task: Dict[str, Any], result: Dict[str, Any]) -> None:
-        with self._lock:
-            task["status"] = "stopped"
-            self._log_event("stopped", task, detail=result)
-
-    def _mark_failed(self, task: Dict[str, Any], result: Dict[str, Any]) -> None:
-        with self._lock:
-            task["status"] = "failed"
-            self._log_event("failed", task, detail=result)
-
-    def _mark_completed(self, task: Dict[str, Any], result: Dict[str, Any]) -> None:
+    def _mark_completed(self, task: Dict[str, Any]) -> None:
         with self._lock:
             task["status"] = "completed"
-            self._log_event("completed", task, detail=result)
+            self._log_event("completed", task)
 
     def _log_event(
         self,
@@ -152,11 +123,8 @@ class QueueManager:
             {
                 "ts": time.time(),
                 "event": event,
-                "request_id": task["request_id"],
-                "step_id": task["step_id"],
                 "task_id": task["id"],
                 "action": task["action"],
-                "params": task.get("params_redacted"),
                 "status": task["status"],
                 "detail": detail,
             }

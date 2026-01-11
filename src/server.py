@@ -3,14 +3,13 @@ import json
 import os
 
 from actions import validate_command
-from executor import Executor
 from queue_manager import QueueManager
 
 HOST = "127.0.0.1"
 PORT = 8080
 
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
-QUEUE_MANAGER = QueueManager(Executor())
+QUEUE_MANAGER = QueueManager()
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
