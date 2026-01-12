@@ -3,14 +3,13 @@ import json
 import os
 
 from actions import validate_command
-from executor import Executor
 from queue_manager import QueueManager
 
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 8080
 
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
-QUEUE_MANAGER = QueueManager(Executor())
+QUEUE_MANAGER = QueueManager()
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
@@ -70,11 +69,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
         action = payload["action"]
         params = payload["params"]
-
-        if action == "stop":
-            result = QUEUE_MANAGER.stop_all()
-            self._send_json(200, {"ok": True, "action": "stop", "result": result})
-            return
 
         task_id = QUEUE_MANAGER.enqueue(action, params)
 
