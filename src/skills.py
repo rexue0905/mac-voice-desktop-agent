@@ -35,10 +35,6 @@ class SkillResult:
 
 
 def redact_params(action: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    if action == "ping":
-        return {}
-    if action == "noop":
-        return {}
     if action == "notify":
         return {
             "title": _truncate(params.get("title"), MAX_TITLE_LENGTH),
@@ -54,16 +50,6 @@ def redact_params(action: str, params: Dict[str, Any]) -> Dict[str, Any]:
     if action == "sleep":
         return {"ms": params.get("ms")}
     return dict(params)
-
-
-def ping(params: Dict[str, Any]) -> SkillResult:
-    del params
-    return SkillResult(ok=True, message="pong")
-
-
-def noop(params: Dict[str, Any]) -> SkillResult:
-    del params
-    return SkillResult(ok=True, message="noop")
 
 
 def open_app(params: Dict[str, Any]) -> SkillResult:

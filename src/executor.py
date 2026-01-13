@@ -5,10 +5,8 @@ from skills import (
     SkillError,
     SkillResult,
     notify,
-    noop,
     open_app,
     open_url,
-    ping,
     redact_params,
     screenshot,
     sleep,
@@ -32,10 +30,6 @@ class Executor:
         try:
             if action == "open_app":
                 result = open_app(params)
-            elif action == "ping":
-                result = ping(params)
-            elif action == "noop":
-                result = noop(params)
             elif action == "open_url":
                 result = open_url(params)
             elif action == "notify":

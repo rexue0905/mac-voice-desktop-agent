@@ -43,22 +43,10 @@ def validate_command(payload: Dict[str, Any]) -> Tuple[bool, str]:
         if not isinstance(app_name, str) or not app_name.strip():
             return False, "open_app_requires_app_name"
 
-    if action == "ping":
-        if params:
-            return False, "ping_params_must_be_empty"
-
-    if action == "noop":
-        if params:
-            return False, "noop_params_must_be_empty"
-
     if action == "open_url":
         url = params.get("url")
         if not isinstance(url, str) or not url.strip():
             return False, "open_url_requires_url"
-
-    if action == "stop":
-        if params:
-            return False, "stop_params_must_be_empty"
 
     if action == "notify":
         title = params.get("title")

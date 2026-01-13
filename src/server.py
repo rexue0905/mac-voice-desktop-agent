@@ -3,15 +3,13 @@ import json
 import os
 
 from actions import validate_command
-from executor import Executor
-from llm_parser import LLMParseError, parse_natural_language
 from queue_manager import QueueManager
 
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 8080
 
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
-QUEUE_MANAGER = QueueManager(Executor())
+QUEUE_MANAGER = QueueManager()
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
@@ -43,29 +41,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             result = QUEUE_MANAGER.stop_all()
             self._send_json(200, result)
             return
-        if self.path == "/nl_command":
-            if not self._is_authorized():
-                self._send_json(401, {"ok": False, "error": "unauthorized"})
-                return
-            raw_body = self._read_body()
-            try:
-                payload = json.loads(raw_body)
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid_json"})
-                return
-            text = payload.get("text")
-            if not isinstance(text, str) or not text.strip():
-                self._send_json(400, {"ok": False, "error": "text_required"})
-                return
-            try:
-                parsed = parse_natural_language(text)
-            except LLMParseError:
-                self._send_json(500, {"ok": False, "error": "llm_unavailable"})
-                return
-            if "error" in parsed:
-                self._send_json(400, parsed)
-                return
-            return self._handle_action(parsed["action"], parsed["params"])
 
         if self.path != "/command":
             self.send_response(404)
@@ -96,8 +71,21 @@ class SimpleHandler(BaseHTTPRequestHandler):
         params = payload["params"]
         return self._handle_action(action, params)
 
-    def log_message(self, format, *args):
-        return
+        task_id = QUEUE_MANAGER.enqueue(action, params)
+
+        self._send_json(200, {"ok": True, "task_id": task_id})
+
+    def _is_authorized(self) -> bool:
+        auth_header = self.headers.get("Authorization", "")
+        return bool(AUTH_TOKEN) and auth_header == f"Bearer {AUTH_TOKEN}"
+
+    def _handle_action(self, action: str, params: dict) -> None:
+        if action == "stop":
+            result = QUEUE_MANAGER.stop_all()
+            self._send_json(200, {"ok": True, "action": "stop", "result": result})
+            return
+        task_id = QUEUE_MANAGER.enqueue(action, params)
+        self._send_json(200, {"ok": True, "task_id": task_id})
 
     def _read_body(self) -> str:
         content_length = int(self.headers.get("Content-Length", "0"))
@@ -112,14 +100,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
     def _is_authorized(self) -> bool:
         auth_header = self.headers.get("Authorization", "")
         return bool(AUTH_TOKEN) and auth_header == f"Bearer {AUTH_TOKEN}"
-
-    def _handle_action(self, action: str, params: dict) -> None:
-        if action == "stop":
-            result = QUEUE_MANAGER.stop_all()
-            self._send_json(200, {"ok": True, "action": "stop", "result": result})
-            return
-        task_id = QUEUE_MANAGER.enqueue(action, params)
-        self._send_json(200, {"ok": True, "task_id": task_id})
 
 
 def run_server():
