@@ -3,6 +3,9 @@ from typing import Any, Dict, Tuple
 
 # 白名单：允许的 action 列表
 ALLOWED_ACTIONS = {
+    "ping",
+    "noop",
+    "stop",
     "open_app",
     "open_url",
     "notify",

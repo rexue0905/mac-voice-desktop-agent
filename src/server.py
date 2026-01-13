@@ -69,13 +69,23 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
         action = payload["action"]
         params = payload["params"]
+        return self._handle_action(action, params)
 
         task_id = QUEUE_MANAGER.enqueue(action, params)
 
         self._send_json(200, {"ok": True, "task_id": task_id})
 
-    def log_message(self, format, *args):
-        return
+    def _is_authorized(self) -> bool:
+        auth_header = self.headers.get("Authorization", "")
+        return bool(AUTH_TOKEN) and auth_header == f"Bearer {AUTH_TOKEN}"
+
+    def _handle_action(self, action: str, params: dict) -> None:
+        if action == "stop":
+            result = QUEUE_MANAGER.stop_all()
+            self._send_json(200, {"ok": True, "action": "stop", "result": result})
+            return
+        task_id = QUEUE_MANAGER.enqueue(action, params)
+        self._send_json(200, {"ok": True, "task_id": task_id})
 
     def _read_body(self) -> str:
         content_length = int(self.headers.get("Content-Length", "0"))
